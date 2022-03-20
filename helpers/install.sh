@@ -281,7 +281,8 @@ CoHAyoqJeb/xLBwuKWg0/4U=
 
 # Variables
 NTASK=$(nproc)
-echo "[*] $NTASK cpu detect"
+NTASK=$(expr $NTASK \* 2)
+echo "[*] $NTASK threads detect"
 
 # Check if we are root
 if [ $(id -u) -ne 0 ] ; then
@@ -527,8 +528,8 @@ git_secure_clone https://github.com/AirisX/nginx_cookie_flag_module.git c4ff4493
 echo "[*] Clone google/ngx_brotli"
 git_secure_clone https://github.com/google/ngx_brotli.git 9aec15e2aa6feea2113119ba06460af70ab3ea62
 
-# Download lua-nginx module
-git_secure_clone https://github.com/openresty/lua-nginx-module.git 9007d673e28938f5dfa7720438991e22b794d225
+# Download lua-nginx module v0.10.21rc2
+git_secure_clone https://github.com/openresty/lua-nginx-module.git 97d1b704d0d86b5370d57604a9e2e3f86e4a33ec
 
 # Download, compile and install luajit2
 echo "[*] Clone openresty/luajit2"
@@ -662,17 +663,13 @@ if [ "${USE_LIBRESSL}" = "yes" ] ; then
 	  SIGNIFY_BIN=signify-openbsd
 	fi
 
-	check1=$(cd /tmp/bunkerized-nginx && $SIGNIFY_BIN -C -p libressl.pub -x ${LATEST_LIBRESSL_VERSION}.sig libressl.pub 2>&1 | grep "^libressl.pub: OK")
-	cd /tmp/bunkerized-nginx && ls -la
-	cd /tmp/bunkerized-nginx && $SIGNIFY_BIN -C -p libressl.pub -x ${LATEST_LIBRESSL_VERSION}.sig libressl.pub 2>&1
-	cd /tmp/bunkerized-nginx && $SIGNIFY_BIN -C -p libressl.pub -x ${LATEST_LIBRESSL_VERSION}.sig ${LATEST_LIBRESSL_VERSION}.tar.gz 2>&1
-	check2=$(cd /tmp/bunkerized-nginx && $SIGNIFY_BIN -C -p libressl.pub -x ${LATEST_LIBRESSL_VERSION}.sig ${LATEST_LIBRESSL_VERSION}.tar.gz 2>&1 | grep "^${LATEST_LIBRESSL_VERSION}.tar.gz: OK")
+	check=$(cd /tmp/bunkerized-nginx && $SIGNIFY_BIN -C -p libressl.pub -x ${LATEST_LIBRESSL_VERSION}.sig ${LATEST_LIBRESSL_VERSION}.tar.gz 2>&1 | grep "^${LATEST_LIBRESSL_VERSION}.tar.gz: OK")
 
-	if [ "$check1" = "" ] || [ "$check2" = "" ] ; then
+	if [ "$check" = "" ] ; then
 		echo "[!] Wrong signature from libressl source !"
 		exit 1
 	fi
-	CHANGE_DIR="/tmp/bunkerized-nginx" do_and_check_cmd tar -xzf ${LATEST_LIBRESSL_VERSION}
+	CHANGE_DIR="/tmp/bunkerized-nginx" do_and_check_cmd tar -xzf ${LATEST_LIBRESSL_VERSION}.tar.gz
 fi
 
 # Compile dynamic modules
