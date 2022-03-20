@@ -62,7 +62,7 @@ jobs:
           context: .
           platforms: linux/amd64,linux/386,linux/arm/v7,linux/arm64/v8
           push: true
-          tags: bunkerity/bunkerized-nginx:dev
+          tags: thelittelfireman/bunkerized-nginx:dev
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
 
@@ -79,4 +79,4 @@ jobs:
           context: .
           platforms: linux/amd64,linux/386,linux/arm/v7,linux/arm64/v8
           push: true
-          tags: bunkerity/bunkerized-nginx:latest,bunkerity/bunkerized-nginx:${{ env.VERSION }}
+          tags: thelittelfireman/bunkerized-nginx:latest,thelittelfireman/bunkerized-nginx:${{ env.VERSION }}

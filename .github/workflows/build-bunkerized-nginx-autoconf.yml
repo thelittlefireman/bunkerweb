@@ -60,7 +60,7 @@ jobs:
           file: autoconf/Dockerfile
           platforms: linux/amd64,linux/386,linux/arm/v7,linux/arm64/v8
           push: true
-          tags: bunkerity/bunkerized-nginx-autoconf:dev
+          tags: thelittelfireman/bunkerized-nginx-autoconf:dev
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
 
@@ -78,5 +78,5 @@ jobs:
           file: autoconf/Dockerfile
           platforms: linux/amd64,linux/386,linux/arm/v7,linux/arm64/v8
           push: true
-          tags: bunkerity/bunkerized-nginx-autoconf:latest,bunkerity/bunkerized-nginx-autoconf:${{ env.VERSION }}
+          tags: thelittelfireman/bunkerized-nginx-autoconf:latest,thelittelfireman/bunkerized-nginx-autoconf:${{ env.VERSION }}
 
