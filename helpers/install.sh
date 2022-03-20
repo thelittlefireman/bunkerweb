@@ -531,9 +531,6 @@ git_secure_clone https://github.com/google/ngx_brotli.git 9aec15e2aa6feea2113119
 # Download lua-nginx module v0.10.21rc2
 git_secure_clone https://github.com/openresty/lua-nginx-module.git 97d1b704d0d86b5370d57604a9e2e3f86e4a33ec
 
-# Download stream-lua-nginx-module v0.0.11rc1
-git_secure_clone https://github.com/openresty/stream-lua-nginx-module e3d9af3f9190ef7be9601ecc07d7518874ec282d
-
 # Download, compile and install luajit2
 echo "[*] Clone openresty/luajit2"
 git_secure_clone https://github.com/openresty/luajit2.git 5ff674c5d9b75d6018994dfac3ce38aab3b8db12
