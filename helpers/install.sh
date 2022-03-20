@@ -531,6 +531,9 @@ git_secure_clone https://github.com/google/ngx_brotli.git 9aec15e2aa6feea2113119
 # Download lua-nginx module v0.10.21rc2
 git_secure_clone https://github.com/openresty/lua-nginx-module.git 97d1b704d0d86b5370d57604a9e2e3f86e4a33ec
 
+# Download stream-lua-nginx-module v0.0.11rc1
+git_secure_clone https://github.com/openresty/stream-lua-nginx-module e3d9af3f9190ef7be9601ecc07d7518874ec282d
+
 # Download, compile and install luajit2
 echo "[*] Clone openresty/luajit2"
 git_secure_clone https://github.com/openresty/luajit2.git 5ff674c5d9b75d6018994dfac3ce38aab3b8db12
@@ -541,7 +544,7 @@ CHANGE_DIR="/tmp/bunkerized-nginx/luajit2" do_and_check_cmd make PREFIX=/opt/bun
 
 # Download and install lua-resty-core
 echo "[*] Clone openresty/lua-resty-core"
-git_secure_clone https://github.com/openresty/lua-resty-core.git 12f26310a35e45c37157420f7e1f395a0e36e457
+git_secure_clone https://github.com/openresty/lua-resty-core.git cf1aa0cba143ff3163f9d2f8d7c590e96a5432f0
 echo "[*] Install lua-resty-core"
 CHANGE_DIR="/tmp/bunkerized-nginx/lua-resty-core" do_and_check_cmd make PREFIX=/opt/bunkerized-nginx/deps install
 
