@@ -37,6 +37,12 @@ function git_secure_clone() {
 		cleanup
 		exit 3
 	fi
+	# check latest release or tags
+	git fetch
+	latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+	latest_release=$(curl --silent "https://api.github.com/repos/$repo/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+	current_tag=$(git describe --tags)
+	echo "[*] UPDATE WATCHER INFO : current tag/release: $current_tag latest tag/release found : $latest_tag/$latest_release"
 }
 
 function secure_download() {
