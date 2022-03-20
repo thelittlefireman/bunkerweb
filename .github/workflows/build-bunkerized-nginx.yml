@@ -1,6 +1,8 @@
 name: Build and push bunkerized-nginx
 
 on:
+  schedule:
+    - cron: '30 2 * * *'
   push:
     branches: [dev, master]
 
@@ -80,3 +82,33 @@ jobs:
           platforms: linux/amd64,linux/386,linux/arm/v7,linux/arm64/v8
           push: true
           tags: thelittelfireman/bunkerized-nginx:latest,thelittelfireman/bunkerized-nginx:${{ env.VERSION }}
+
+      - name: Build and push Libressl version (master)
+        uses: docker/build-push-action@v2
+        if: github.ref == 'refs/heads/master'
+        with:
+          context: .
+          file: Dockerfile_libressl
+          platforms: linux/amd64,linux/386,linux/arm/v7,linux/arm64/v8
+          push: true
+          tags: thelittelfireman/bunkerized-nginx:libressl-latest,thelittelfireman/bunkerized-nginx:libressl-${{ env.VERSION }}
+
+      - name: Build and push Mainline version (master)
+        uses: docker/build-push-action@v2
+        if: github.ref == 'refs/heads/master'
+        with:
+          context: .
+          file: Dockerfile_mainline
+          platforms: linux/amd64,linux/386,linux/arm/v7,linux/arm64/v8
+          push: true
+          tags: thelittelfireman/bunkerized-nginx:mainline-latest,thelittelfireman/bunkerized-nginx:mainline-${{ env.VERSION }}
+
+      - name: Build and push Libressl and Mainline version (master)
+        uses: docker/build-push-action@v2
+        if: github.ref == 'refs/heads/master'
+        with:
+          context: .
+          file: Dockerfile_mainline_libressl
+          platforms: linux/amd64,linux/386,linux/arm/v7,linux/arm64/v8
+          push: true
+          tags: thelittelfireman/bunkerized-nginx:mainline-libressl-latest,thelittelfireman/bunkerized-nginx:mainline-libressl-${{ env.VERSION }}

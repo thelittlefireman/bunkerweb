@@ -1,4 +1,5 @@
 #!/bin/bash
+NGINX_RECOMANDED_VERSION="1.20.2"
 
 function git_secure_checkout() {
 	if [ "$CHANGE_DIR" != "" ] ; then
@@ -77,6 +78,13 @@ function do_and_check_cmd() {
 function cleanup() {
 	echo "[*] Cleaning /tmp/bunkerized-nginx"
 	rm -rf /tmp/bunkerized-nginx
+}
+
+function get_libressl_pub_key() {
+  key="untrusted comment: LibreSSL portable signify key, April 8 2020 public key
+RWT44PcJDPu8ZDd5GfXWW2vuE+xq4M3haXXfYohnEnWoEYCKHNFut6W8
+"
+	echo "$key"
 }
 
 function get_sign_repo_key() {
@@ -273,6 +281,7 @@ CoHAyoqJeb/xLBwuKWg0/4U=
 
 # Variables
 NTASK=$(nproc)
+echo "[*] $NTASK cpu detect"
 
 # Check if we are root
 if [ $(id -u) -ne 0 ] ; then
@@ -363,8 +372,8 @@ module_hotfixes=true"
 	NGINX_VERSION="$(nginx -V 2>&1 | sed -rn 's~^nginx version: nginx/(.*)$~\1~p')"
 fi
 echo "[*] Detected nginx version ${NGINX_VERSION}"
-if [ "$NGINX_VERSION" != "1.20.1" ] ; then
-	echo "/!\\ Warning : we recommend you to use nginx v1.20.1, you should uninstall your nginx version and run this script again ! /!\\"
+if [ "$NGINX_VERSION" != "$NGINX_RECOMANDED_VERSION" ] ; then
+	echo "/!\\ Warning : we recommend you to use nginx v$NGINX_RECOMANDED_VERSION, you should uninstall your nginx version and run this script again ! /!\\"
 fi
 
 # Stop nginx on Linux
@@ -385,20 +394,20 @@ elif [ "$OS" = "archlinux" ] ; then
 fi
 echo "[*] Install compilation dependencies"
 if [ "$OS" = "debian" ] || [ "$OS" = "ubuntu" ] ; then
-	DEBIAN_DEPS="git autoconf pkg-config libpcre++-dev automake libtool g++ make libgd-dev libssl-dev wget libbrotli-dev gnupg patch libreadline-dev"
+	DEBIAN_DEPS="git autoconf pkg-config libpcre++-dev automake libtool gcc g++ make libgd-dev libssl-dev wget libbrotli-dev gnupg patch libreadline-dev libffi-dev signify-openbsd"
 	DEBIAN_FRONTEND=noninteractive do_and_check_cmd apt install -y $DEBIAN_DEPS
 elif [ "$OS" = "centos" ] ; then
 	do_and_check_cmd yum install -y epel-release
-	CENTOS_DEPS="git autoconf pkg-config pcre-devel automake libtool gcc-c++ make gd-devel openssl-devel wget brotli-devel gnupg patch readline-devel ca-certificates"
+	CENTOS_DEPS="git autoconf pkg-config pcre-devel automake libtool gcc-c++ make gd-devel openssl-devel wget brotli-devel gnupg patch readline-devel ca-certificates libffi-dev signify-openbsd"
 	do_and_check_cmd yum install -y $CENTOS_DEPS
 elif [ "$OS" = "fedora" ] ; then
-	FEDORA_DEPS="git autoconf pkg-config pcre-devel automake libtool gcc-c++ make gd-devel openssl-devel wget brotli-devel gnupg libxslt-devel perl-ExtUtils-Embed gperftools-devel patch readline-devel"
+	FEDORA_DEPS="git autoconf pkg-config pcre-devel automake libtool gcc-c++ make gd-devel openssl-devel wget brotli-devel gnupg libxslt-devel perl-ExtUtils-Embed gperftools-devel patch readline-devel libffi-dev signify-openbsd"
 	do_and_check_cmd dnf install -y $FEDORA_DEPS
 elif [ "$OS" = "archlinux" ] ; then
-	ARCHLINUX_DEPS="git autoconf pkgconf pcre2 automake libtool gcc make gd openssl wget brotli gnupg libxslt patch readline"
+	ARCHLINUX_DEPS="git autoconf pkgconf pcre2 automake libtool gcc make gd openssl wget brotli gnupg libxslt patch readline libffi-dev signify-openbsd"
 	do_and_check_cmd pacman -S --noconfirm $ARCHLINUX_DEPS
 elif [ "$OS" = "alpine" ] ; then
-	ALPINE_DEPS="git build autoconf libtool automake git geoip-dev yajl-dev g++ gcc curl-dev libxml2-dev pcre-dev make linux-headers musl-dev gd-dev gnupg brotli-dev openssl-dev patch readline-dev"
+	ALPINE_DEPS="git build autoconf libtool automake git geoip-dev yajl-dev g++ gcc curl-dev libxml2-dev pcre-dev make linux-headers musl-dev gd-dev gnupg brotli-dev openssl-dev patch readline-dev libffi-dev outils-signify"
 	do_and_check_cmd apk add --no-cache --virtual build $ALPINE_DEPS
 fi
 
@@ -637,6 +646,35 @@ do_and_check_cmd gpg --import /tmp/bunkerized-nginx/nginx.key
 do_and_check_cmd gpg --verify /tmp/bunkerized-nginx/nginx-${NGINX_VERSION}.tar.gz.asc /tmp/bunkerized-nginx/nginx-${NGINX_VERSION}.tar.gz
 CHANGE_DIR="/tmp/bunkerized-nginx" do_and_check_cmd tar -xvzf nginx-${NGINX_VERSION}.tar.gz
 
+if [ "${USE_LIBRESSL}" = "yes" ] ; then
+
+	# if dockerfile is configure to use libressl we need to rebuild nginx
+  get_libressl_pub_key > /tmp/bunkerized-nginx/libressl.pub
+	# prepare libressl
+	LATEST_LIBRESSL_VERSION=$(curl -L https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/ | egrep -o "libressl\-[0-9.]+\.tar\.gz" | tail -n 1 | sed -e "s/.tar.gz//g")
+	echo "[*] Download latest ${LATEST_LIBRESSL_VERSION}"
+	do_and_check_cmd wget -O "/tmp/bunkerized-nginx/${LATEST_LIBRESSL_VERSION}.tar.gz" "https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${LATEST_LIBRESSL_VERSION}.tar.gz"
+	do_and_check_cmd wget -O "/tmp/bunkerized-nginx/${LATEST_LIBRESSL_VERSION}.sig" "https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/SHA256.sig"
+
+	if [ "$OS" = "alpine" ] ; then
+	  SIGNIFY_BIN=signify
+	else
+	  SIGNIFY_BIN=signify-openbsd
+	fi
+
+	check1=$(cd /tmp/bunkerized-nginx && $SIGNIFY_BIN -C -p libressl.pub -x ${LATEST_LIBRESSL_VERSION}.sig libressl.pub 2>&1 | grep "^libressl.pub: OK")
+	cd /tmp/bunkerized-nginx && ls -la
+	cd /tmp/bunkerized-nginx && $SIGNIFY_BIN -C -p libressl.pub -x ${LATEST_LIBRESSL_VERSION}.sig libressl.pub 2>&1
+	cd /tmp/bunkerized-nginx && $SIGNIFY_BIN -C -p libressl.pub -x ${LATEST_LIBRESSL_VERSION}.sig ${LATEST_LIBRESSL_VERSION}.tar.gz 2>&1
+	check2=$(cd /tmp/bunkerized-nginx && $SIGNIFY_BIN -C -p libressl.pub -x ${LATEST_LIBRESSL_VERSION}.sig ${LATEST_LIBRESSL_VERSION}.tar.gz 2>&1 | grep "^${LATEST_LIBRESSL_VERSION}.tar.gz: OK")
+
+	if [ "$check1" = "" ] || [ "$check2" = "" ] ; then
+		echo "[!] Wrong signature from libressl source !"
+		exit 1
+	fi
+	CHANGE_DIR="/tmp/bunkerized-nginx" do_and_check_cmd tar -xzf ${LATEST_LIBRESSL_VERSION}
+fi
+
 # Compile dynamic modules
 echo "[*] Compile dynamic modules"
 CONFARGS="$(nginx -V 2>&1 | sed -n -e 's/^.*arguments: //p')"
@@ -644,19 +682,32 @@ CONFARGS="${CONFARGS/-Os -fomit-frame-pointer -g/-Os}"
 if [ "$OS" = "fedora" ] ; then
 	CONFARGS="$(echo -n "$CONFARGS" | sed "s/--with-ld-opt='.*'//" | sed "s/--with-cc-opt='.*'//")"
 fi
+if [ "${USE_LIBRESSL}" = "yes" ] ; then
+  CONFARGS="$CONFARGS --with-openssl=/tmp/bunkerized-nginx/${LATEST_LIBRESSL_VERSION}"
+fi
 echo "\#!/bin/bash" > "/tmp/bunkerized-nginx/nginx-${NGINX_VERSION}/configure-fix.sh"
 echo "./configure $CONFARGS --add-dynamic-module=/tmp/bunkerized-nginx/ModSecurity-nginx --add-dynamic-module=/tmp/bunkerized-nginx/headers-more-nginx-module --add-dynamic-module=/tmp/bunkerized-nginx/ngx_http_geoip2_module --add-dynamic-module=/tmp/bunkerized-nginx/nginx_cookie_flag_module --add-dynamic-module=/tmp/bunkerized-nginx/lua-nginx-module --add-dynamic-module=/tmp/bunkerized-nginx/ngx_brotli" >> "/tmp/bunkerized-nginx/nginx-${NGINX_VERSION}/configure-fix.sh"
 do_and_check_cmd chmod +x "/tmp/bunkerized-nginx/nginx-${NGINX_VERSION}/configure-fix.sh"
 CHANGE_DIR="/tmp/bunkerized-nginx/nginx-${NGINX_VERSION}" LUAJIT_LIB="/opt/bunkerized-nginx/deps/lib -Wl,-rpath,/opt/bunkerized-nginx/deps/lib" LUAJIT_INC="/opt/bunkerized-nginx/deps/include/luajit-2.1" MODSECURITY_LIB="/opt/bunkerized-nginx/deps/lib" MODSECURITY_INC="/opt/bunkerized-nginx/deps/include" do_and_check_cmd ./configure-fix.sh
 CHANGE_DIR="/tmp/bunkerized-nginx/nginx-${NGINX_VERSION}" do_and_check_cmd make -j $NTASK modules
+
+if [ "${USE_LIBRESSL}" = "yes" ] ; then
+  echo "[*] Recompile nginx with libressl"
+  CHANGE_DIR="/tmp/bunkerized-nginx/nginx-${NGINX_VERSION}" do_and_check_cmd make -j $NTASK
+  CHANGE_DIR="/tmp/bunkerized-nginx/nginx-${NGINX_VERSION}" do_and_check_cmd make install
+fi
 # TODO : move modules to /opt/bunkerized-nginx/modules
 if [ ! -d "/usr/lib/nginx/modules" ] ; then
 	do_and_check_cmd mkdir -p /usr/lib/nginx/modules
 fi
+do_and_check_cmd strip /usr/sbin/nginx
+
 do_and_check_cmd chown -R root:root /usr/lib/nginx
 do_and_check_cmd chmod -R 755 /usr/lib/nginx
 CHANGE_DIR="/tmp/bunkerized-nginx/nginx-${NGINX_VERSION}" do_and_check_cmd cp ./objs/*.so /usr/lib/nginx/modules
 do_and_check_cmd chmod 744 /usr/lib/nginx/modules/*
+echo "[*] Nginx version and module : "
+echo "$(nginx -V)"
 
 # Remove alpine build dependencies
 if [ "$OS" = "alpine" ] ; then
