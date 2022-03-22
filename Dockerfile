@@ -1,4 +1,10 @@
 FROM nginx:1.20.2-alpine
+# Speed up builds
+
+ARG CC="ccache gcc"
+ARG CCACHE_DIR="/tmp/.ccache"
+ARG CXX="ccache g++"
+ARG USE_CCACHE=1
 
 COPY . /tmp/bunkerized-nginx-docker
 COPY helpers/install.sh /tmp/install.sh

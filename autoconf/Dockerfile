@@ -12,10 +12,12 @@ COPY autoconf/requirements.txt /opt/bunkerized-nginx/entrypoint/
 COPY autoconf/src/* /opt/bunkerized-nginx/entrypoint/
 COPY VERSION /opt/bunkerized-nginx
 
+RUN apk update
 RUN apk add --no-cache py3-pip bash certbot curl openssl socat && \
     pip3 install -r /opt/bunkerized-nginx/gen/requirements.txt && \
     pip3 install -r /opt/bunkerized-nginx/entrypoint/requirements.txt && \
     pip3 install -r /opt/bunkerized-nginx/jobs/requirements.txt
+RUN apk upgrade
 
 COPY autoconf/prepare.sh /tmp
 RUN chmod +x /tmp/prepare.sh && \

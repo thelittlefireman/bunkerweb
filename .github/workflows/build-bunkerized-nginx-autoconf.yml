@@ -62,7 +62,7 @@ jobs:
           file: autoconf/Dockerfile
           platforms: linux/amd64,linux/386,linux/arm/v7,linux/arm64/v8
           push: true
-          tags: thelittelfireman/bunkerized-nginx-autoconf:dev
+          tags: thelittlefireman/bunkerized-nginx-autoconf:dev
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
 
@@ -80,5 +80,5 @@ jobs:
           file: autoconf/Dockerfile
           platforms: linux/amd64,linux/386,linux/arm/v7,linux/arm64/v8
           push: true
-          tags: thelittelfireman/bunkerized-nginx-autoconf:latest,thelittelfireman/bunkerized-nginx-autoconf:${{ env.VERSION }}
+          tags: thelittlefireman/bunkerized-nginx-autoconf:latest,thelittlefireman/bunkerized-nginx-autoconf:${{ env.VERSION }}
 

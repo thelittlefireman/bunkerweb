@@ -1,5 +1,5 @@
 #!/bin/bash
-NGINX_RECOMANDED_VERSION="1.20.2"
+NGINX_RECOMENDED_VERSION="1.20.2"
 
 function git_secure_checkout() {
 	if [ "$CHANGE_DIR" != "" ] ; then
@@ -22,6 +22,7 @@ function git_secure_clone() {
 	repo="$1"
 	commit="$2"
 	folder="$(echo "$repo" | sed -E "s@https://github.com/.*/(.*)\.git@\1@")"
+	full_name_repo="$(echo "$repo" | sed -E "s@https://github.com/(.*)\.git@\1@")"
 	output="$(git clone "$repo" 2>&1)"
 	if [ $? -ne 0 ] ; then
 		echo "[!] Error cloning $1"
@@ -37,6 +38,12 @@ function git_secure_clone() {
 		cleanup
 		exit 3
 	fi
+	# check latest release or tags
+	git fetch
+	latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+	latest_release=$(curl --silent "https://api.github.com/repos/$full_name_repo/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+	current_tag=$(git describe --tags)
+	echo "[*] UPDATE WATCHER INFO : current tag/release: $current_tag latest tag/release found : $latest_tag/$latest_release"
 }
 
 function secure_download() {
@@ -373,8 +380,8 @@ module_hotfixes=true"
 	NGINX_VERSION="$(nginx -V 2>&1 | sed -rn 's~^nginx version: nginx/(.*)$~\1~p')"
 fi
 echo "[*] Detected nginx version ${NGINX_VERSION}"
-if [ "$NGINX_VERSION" != "$NGINX_RECOMANDED_VERSION" ] ; then
-	echo "/!\\ Warning : we recommend you to use nginx v$NGINX_RECOMANDED_VERSION, you should uninstall your nginx version and run this script again ! /!\\"
+if [ "$NGINX_VERSION" != "$NGINX_RECOMENDED_VERSION" ] ; then
+	echo "/!\\ Warning : we recommend you to use nginx v$NGINX_RECOMENDED_VERSION, you should uninstall your nginx version and run this script again ! /!\\"
 fi
 
 # Stop nginx on Linux
@@ -387,28 +394,40 @@ if [ "$OS" != "alpine" ] ; then
 fi
 
 # Install dependencies
-echo "[*] Update packet list"
+echo "[*] Update and upgrade packet list"
 if [ "$OS" = "debian" ] || [ "$OS" = "ubuntu" ] ; then
-	do_and_check_cmd apt update
+	apt update
+	do_and_check_cmd apt upgrade -y
+elif [ "$OS" = "centos" ] ; then
+  yum update
+  do_and_check_cmd yum install -y epel-release
+	do_and_check_cmd yum upgrade -y
+elif [ "$OS" = "fedora" ] ; then
+	dnf update
+	do_and_check_cmd dnf upgrade -y
 elif [ "$OS" = "archlinux" ] ; then
-	do_and_check_cmd pacman -Sy
+	pacman -Sy
+	do_and_check_cmd pacman -Syu --noconfirm
+elif [ "$OS" = "alpine" ] ; then
+	apk update
+	do_and_check_cmd apk upgrade
 fi
+
 echo "[*] Install compilation dependencies"
 if [ "$OS" = "debian" ] || [ "$OS" = "ubuntu" ] ; then
-	DEBIAN_DEPS="git autoconf pkg-config libpcre++-dev automake libtool gcc g++ make libgd-dev libssl-dev wget libbrotli-dev gnupg patch libreadline-dev libffi-dev signify-openbsd"
+	DEBIAN_DEPS="git autoconf pkg-config libpcre++-dev automake libtool gcc g++ make libgd-dev libssl-dev wget libbrotli-dev gnupg patch libreadline-dev libffi-dev signify-openbsd curl python3-dev python3-pip"
 	DEBIAN_FRONTEND=noninteractive do_and_check_cmd apt install -y $DEBIAN_DEPS
 elif [ "$OS" = "centos" ] ; then
-	do_and_check_cmd yum install -y epel-release
-	CENTOS_DEPS="git autoconf pkg-config pcre-devel automake libtool gcc-c++ make gd-devel openssl-devel wget brotli-devel gnupg patch readline-devel ca-certificates libffi-dev signify-openbsd"
+	CENTOS_DEPS="git autoconf pkg-config pcre-devel automake libtool gcc-c++ make gd-devel openssl-devel wget brotli-devel gnupg patch readline-devel ca-certificates libffi-devel signify curl python3-devel python3-pip"
 	do_and_check_cmd yum install -y $CENTOS_DEPS
 elif [ "$OS" = "fedora" ] ; then
-	FEDORA_DEPS="git autoconf pkg-config pcre-devel automake libtool gcc-c++ make gd-devel openssl-devel wget brotli-devel gnupg libxslt-devel perl-ExtUtils-Embed gperftools-devel patch readline-devel libffi-dev signify-openbsd"
+	FEDORA_DEPS="git autoconf pkg-config pcre-devel automake libtool gcc-c++ make gd-devel openssl-devel wget brotli-devel gnupg libxslt-devel perl-ExtUtils-Embed gperftools-devel patch readline-devel libffi-devel signify curl python3-devel python3-pip"
 	do_and_check_cmd dnf install -y $FEDORA_DEPS
 elif [ "$OS" = "archlinux" ] ; then
-	ARCHLINUX_DEPS="git autoconf pkgconf pcre2 automake libtool gcc make gd openssl wget brotli gnupg libxslt patch readline libffi-dev signify-openbsd"
+	ARCHLINUX_DEPS="git autoconf pkgconf pcre2 automake libtool gcc make gd openssl wget brotli gnupg libxslt patch readline libffi signify curl python python-pip"
 	do_and_check_cmd pacman -S --noconfirm $ARCHLINUX_DEPS
 elif [ "$OS" = "alpine" ] ; then
-	ALPINE_DEPS="git build autoconf libtool automake git geoip-dev yajl-dev g++ gcc curl-dev libxml2-dev pcre-dev make linux-headers musl-dev gd-dev gnupg brotli-dev openssl-dev patch readline-dev libffi-dev outils-signify"
+	ALPINE_DEPS="git build autoconf libtool automake git geoip-dev yajl-dev g++ gcc rust cargo curl-dev libxml2-dev pcre-dev make linux-headers musl-dev gd-dev gnupg brotli-dev openssl-dev libressl-dev patch readline-dev libffi-dev outils-signify curl python3-dev py3-pip ccache"
 	do_and_check_cmd apk add --no-cache --virtual build $ALPINE_DEPS
 fi
 
@@ -530,9 +549,6 @@ git_secure_clone https://github.com/google/ngx_brotli.git 9aec15e2aa6feea2113119
 
 # Download lua-nginx module v0.10.21rc2
 git_secure_clone https://github.com/openresty/lua-nginx-module.git 97d1b704d0d86b5370d57604a9e2e3f86e4a33ec
-
-# Download stream-lua-nginx-module v0.0.11rc1
-git_secure_clone https://github.com/openresty/stream-lua-nginx-module e3d9af3f9190ef7be9601ecc07d7518874ec282d
 
 # Download, compile and install luajit2
 echo "[*] Clone openresty/luajit2"
@@ -709,39 +725,8 @@ do_and_check_cmd chmod 744 /usr/lib/nginx/modules/*
 echo "[*] Nginx version and module : "
 echo "$(nginx -V)"
 
-# Remove alpine build dependencies
-if [ "$OS" = "alpine" ] ; then
-	apk del build > /dev/null 2>&1
-fi
 cd "$old_dir"
 cleanup
-echo "[*] Dependencies for bunkerized-nginx successfully installed !"
-
-# Install dependencies
-echo "[*] Update packet list"
-if [ "$OS" = "debian" ] || [ "$OS" = "ubuntu" ] ; then
-	do_and_check_cmd apt update
-fi
-echo "[*] Install runtime dependencies"
-if [ "$OS" = "debian" ] || [ "$OS" = "ubuntu" ] ; then
-	DEBIAN_DEPS="certbot git cron curl python3 python3-pip procps sudo"
-	DEBIAN_FRONTEND=noninteractive do_and_check_cmd apt install -y $DEBIAN_DEPS
-elif [ "$OS" = "centos" ] ; then
-	do_and_check_cmd yum install -y epel-release
-	CENTOS_DEPS="certbot git crontabs curl python3 python3-pip procps sudo"
-	do_and_check_cmd yum install -y $CENTOS_DEPS
-elif [ "$OS" = "fedora" ] ; then
-	FEDORA_DEPS="certbot git crontabs curl python3 python3-pip procps nginx-mod-stream sudo"
-	do_and_check_cmd dnf install -y $FEDORA_DEPS
-	# Temp fix
-	do_and_check_cmd cp /usr/lib64/nginx/modules/ngx_stream_module.so /usr/lib/nginx/modules/ngx_stream_module.so
-elif [ "$OS" = "archlinux" ] ; then
-	ARCHLINUX_DEPS="certbot git cronie curl python python-pip procps sudo"
-	do_and_check_cmd pacman -S --noconfirm $ARCHLINUX_DEPS
-elif [ "$OS" = "alpine" ] ; then
-	ALPINE_DEPS="certbot bash libgcc yajl libstdc++ openssl py3-pip git"
-	do_and_check_cmd apk add --no-cache $ALPINE_DEPS
-fi
 
 # Clone the repo
 if [ "$OS" != "alpine" ] && [ ! -d "/tmp/bunkerized-nginx-test" ] ; then
@@ -760,13 +745,61 @@ fi
 
 # Install Python dependencies
 echo "[*] Install python dependencies"
-do_and_check_cmd pip3 install --upgrade pip
+do_and_check_cmd python3 -m pip install --upgrade pip
+do_and_check_cmd pip3 install --upgrade wheel
 do_and_check_cmd pip3 install -r /tmp/bunkerized-nginx/gen/requirements.txt
 do_and_check_cmd pip3 install -r /tmp/bunkerized-nginx/jobs/requirements.txt
 if [ "$OS" != "alpine" ] ; then
 	do_and_check_cmd pip3 install -r /tmp/bunkerized-nginx/ui/requirements.txt
 fi
+# Force upgrade
 do_and_check_cmd pip3 install cryptography --upgrade
+
+# Remove alpine build dependencies
+if [ "$OS" = "alpine" ] ; then
+  echo "[*] Cleanup alpine/docker dependencies"
+	apk del build > /dev/null 2>&1
+fi
+
+echo "[*] Dependencies for bunkerized-nginx successfully installed !"
+
+# Install dependencies
+echo "[*] Update packet list"
+if [ "$OS" = "debian" ] || [ "$OS" = "ubuntu" ] ; then
+	do_and_check_cmd apt update
+elif [ "$OS" = "centos" ] ; then
+	do_and_check_cmd yum update
+elif [ "$OS" = "fedora" ] ; then
+	do_and_check_cmd dnf update
+elif [ "$OS" = "archlinux" ] ; then
+	do_and_check_cmd pacman -Sy
+elif [ "$OS" = "alpine" ] ; then
+	do_and_check_cmd apk update
+fi
+
+
+echo "[*] Install runtime dependencies"
+if [ "$OS" = "debian" ] || [ "$OS" = "ubuntu" ] ; then
+	DEBIAN_DEPS="certbot git cron curl python3 procps sudo"
+	DEBIAN_FRONTEND=noninteractive do_and_check_cmd apt install -y $DEBIAN_DEPS
+elif [ "$OS" = "centos" ] ; then
+	CENTOS_DEPS="certbot git crontabs curl python3 procps sudo"
+	do_and_check_cmd yum install -y $CENTOS_DEPS
+elif [ "$OS" = "fedora" ] ; then
+	FEDORA_DEPS="certbot git crontabs curl python3 procps nginx-mod-stream sudo"
+	do_and_check_cmd dnf install -y $FEDORA_DEPS
+	# Temp fix
+	do_and_check_cmd cp /usr/lib64/nginx/modules/ngx_stream_module.so /usr/lib/nginx/modules/ngx_stream_module.so
+elif [ "$OS" = "archlinux" ] ; then
+	ARCHLINUX_DEPS="certbot git cronie curl python procps sudo"
+	do_and_check_cmd pacman -S --noconfirm $ARCHLINUX_DEPS
+elif [ "$OS" = "alpine" ] ; then
+  ALPINE_DEPS="certbot bash libgcc curl yajl libstdc++ openssl python3 git"
+  if [ "${USE_LIBRESSL}" = "yes" ] ; then
+    ALPINE_DEPS="$ALPINE_DEPS libressl"
+  fi
+	do_and_check_cmd apk add --no-cache $ALPINE_DEPS
+fi
 
 # Copy generator
 echo "[*] Copy generator"

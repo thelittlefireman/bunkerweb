@@ -98,7 +98,7 @@ pid="$!"
 
 # autotest
 if [ "$1" == "test" ] ; then
-	sleep 10
+	sleep 40
 	echo -n "autotest" > /opt/bunkerized-nginx/www/index.html
 	check=$(curl -H "User-Agent: legit" "http://localhost:8080")
 	if [ "$check" == "autotest" ] ; then

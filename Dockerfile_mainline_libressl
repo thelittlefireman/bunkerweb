@@ -1,6 +1,12 @@
 FROM nginx:1.21.6-alpine
 
-ENV USE_LIBRESSL yes
+ARG USE_LIBRESSL="yes"
+# Speed up builds
+
+ARG CC="ccache gcc"
+ARG CCACHE_DIR="/tmp/.ccache"
+ARG CXX="ccache g++"
+ARG USE_CCACHE=1
 
 COPY . /tmp/bunkerized-nginx-docker
 COPY helpers/install.sh /tmp/install.sh
