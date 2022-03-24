@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.3.3 -
+
+- Add PROXY_CONNECT_TIMEOUT, PROXY_READ_TIMEOUT, PROXY_SEND_TIMEOUT
+- Improvement of parsing IPs
+- Early support for IPv6
+- Fix security issue ==> Rebuild every night with last packages updates
+- Add mainline nginx container
+- Add Libressl container (override openssl)
+
 ## v1.3.2 -
 
 - Use API instead of a shared folder for Swarm and Kubernetes integrations
