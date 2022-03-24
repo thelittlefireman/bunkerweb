@@ -1320,6 +1320,33 @@
                 "label": "Proxy real ip recursive",
                 "regex": "^(on|off)$",
                 "type": "text"
+            },
+            {
+                "context": "multisite",
+                "default": "60",
+                "env": "PROXY_CONNECT_TIMEOUT",
+                "id": "proxy-connect-timeout",
+                "label": "Proxy connection timeout",
+                "regex": "^\\d+$",
+                "type": "text"
+            },
+            {
+                "context": "multisite",
+                "default": "60",
+                "env": "PROXY_SEND_TIMEOUT",
+                "id": "proxy-send-timeout",
+                "label": "Proxy send timeout",
+                "regex": "^\\d+$",
+                "type": "text"
+            },
+            {
+                "context": "multisite",
+                "default": "60",
+                "env": "PROXY_READ_TIMEOUT",
+                "id": "proxy-read-timeout",
+                "label": "Proxy read timeout",
+                "regex": "^\\d+$",
+                "type": "text"
             }
         ]
     },
