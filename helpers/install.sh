@@ -763,7 +763,7 @@ if [ "$OS" = "alpine" ] ; then
   echo "[*] Cleanup alpine/docker dependencies"
 	apk del build > /dev/null 2>&1
 	echo "[*] Uninstall latest rust after build"
-  do_and_check_cmd rustup -y self uninstall
+  yes | rustup self uninstall
 fi
 
 echo "[*] Dependencies for bunkerized-nginx successfully installed !"
