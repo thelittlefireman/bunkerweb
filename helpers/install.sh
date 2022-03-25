@@ -431,9 +431,9 @@ elif [ "$OS" = "alpine" ] ; then
 	do_and_check_cmd apk add --no-cache --virtual build $ALPINE_DEPS
 fi
 echo "[*] Install latest rust for py-cryptography"
-CHANGE_DIR="/tmp/bunkerized-nginx" do_and_check_cmd curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > ./rustup.sh && chmod +x ./rustup.sh && ./rustup.sh
+CHANGE_DIR="/tmp/bunkerized-nginx" do_and_check_cmd curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs >> ./rustup.sh && chmod +x ./rustup.sh && ./rustup.sh -y
 export PATH="$PATH:$HOME/.cargo/bin"
-ls -la $HOME/.cargo/bin/
+
 # Download, compile and install lua
 echo "[*] Download lua-5.1.5"
 secure_download "https://www.lua.org/ftp/lua-5.1.5.tar.gz" "lua-5.1.5.tar.gz" "0142fefcbd13afcd9b201403592aa60620011cc8e8559d4d2db2f92739d18186860989f48caa45830ff4f99bfc7483287fd3ff3a16d4dec928e2767ce4d542a9"
@@ -763,7 +763,7 @@ if [ "$OS" = "alpine" ] ; then
   echo "[*] Cleanup alpine/docker dependencies"
 	apk del build > /dev/null 2>&1
 	echo "[*] Uninstall latest rust after build"
-  do_and_check_cmd rustup self uninstall
+  do_and_check_cmd rustup -y self uninstall
 fi
 
 echo "[*] Dependencies for bunkerized-nginx successfully installed !"
