@@ -431,7 +431,7 @@ elif [ "$OS" = "alpine" ] ; then
 	do_and_check_cmd apk add --no-cache --virtual build $ALPINE_DEPS
 fi
 echo "[*] Install latest rust for py-cryptography"
-CHANGE_DIR="/tmp/bunkerized-nginx" do_and_check_cmd curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs >> ./rustup.sh && chmod +x ./rustup.sh && ./rustup.sh -y
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs >> ./rustup.sh && chmod +x ./rustup.sh && ./rustup.sh -y
 export PATH="$PATH:$HOME/.cargo/bin"
 
 # Download, compile and install lua
